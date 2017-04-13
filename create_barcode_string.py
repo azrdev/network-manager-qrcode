@@ -31,7 +31,7 @@ def create_string(connection):
     s_con = connection['connection']
     security = connection['802-11-wireless-security']
     
-    ssid = s_con['id']
+    ssid = connection['802-11-wireless']['ssid'].decode('utf-8')
     
     if 'wep-key0' in security:
         sectype = 'WEP'

@@ -82,7 +82,7 @@ def list_connections():
     for path in connection_paths:
         con_proxy = bus.get_object(service_name, path)
         settings_connection = dbus.Interface(con_proxy, "org.freedesktop.NetworkManager.Settings.Connection")
-        config = settings_connection.GetSettings()
+        config = settings_connection.GetSettings(byte_arrays=True)
 
         # Now get secrets too; we grab the secrets for each type of connection
         # (since there isn't a "get all secrets" call because most of the time
