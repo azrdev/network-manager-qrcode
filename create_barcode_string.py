@@ -28,14 +28,9 @@ def create_string(connection):
     """A string to be parsed may look like this:
         WIFI:T:WPA;S:trololol;P:"12345678";;
     """
-    s_con = connection['connection']
-    security = connection['802-11-wireless-security']
-    
-    ssid = connection['802-11-wireless']['ssid'].decode('utf-8')
-    
-    if 'wep-key0' in security:
-        sectype = 'WEP'
-        password = security['wep-key0']
+    passphrase = connection.get_key()
+    if connection.get_sec_type() == 'WEP':
+        password = connection.get_key()
         passphrase = quotedphrase(password)
         # Hm, let's assume that it's a 128 bit passphrase
         # http://pygmalion.nitri.de/convert-wep-passphrase-into-hex-75.html
@@ -48,30 +43,14 @@ def create_string(connection):
         digest = md5(ba)
         WEPSTRONGKEYSIZE = 13
         passphrase = digest.hexdigest()[:26]
-    else:
-        sectype = 'WPA'
-        passphrase = security['psk']
 
     s  = "WIFI:"
-    s += "T:%s;" % sectype
-    s += "S:%s;" % ssid
-    # When the passphrase can be interpreted as hex, it shold be quoted.
+    s += "T:%s;" % connection.get_sec_type()
+    s += "S:%s;" % connection.get_ssid()
+    # When the passphrase can be interpreted as hex, it should be quoted.
     # We manage that quoting with the quoted phrase class
     #s += "P:\"%s\";" % passphrase
     s += "P:%s;" % passphrase
     s += ";"
 
     return s
-
-
-if __name__ == '__main__':
-    connection = {
-        'config': {
-            'id': 'foo',
-        },
-        '802-11-wireless-security' : {
-            'key-mgmt': 'wpa',
-            'psk': 'my passphrase',
-        },
-    }
-    print((create_string (connection)))

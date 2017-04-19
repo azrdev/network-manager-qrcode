@@ -21,7 +21,7 @@
 
 import dbus, sys
 
-from read_connections import merge_secrets
+from read_connections import merge_secrets, Connection
 
 # This example takes a device interface name as a parameter and tells
 # NetworkManager to disconnect that device, closing down any network
@@ -50,13 +50,8 @@ def get_active_connections():
     
         # Grab the connection object path so we can get all the connection's settings
         connection_path = a_props.Get("org.freedesktop.NetworkManager.Connection.Active", "Connection")
-        c_proxy = bus.get_object("org.freedesktop.NetworkManager", connection_path)
-        connection = dbus.Interface(c_proxy, "org.freedesktop.NetworkManager.Settings.Connection")
-        settings = connection.GetSettings()
-        merge_secrets(c_proxy, settings, "802-11-wireless-security")
-        yield settings
-        #print "%s (%s) - %s" % (settings['connection']['id'], uuid, settings['connection']['type']) 
+        yield Connection(connection_path)
 
 if __name__ == '__main__':
-    print((get_active_connection()))
+    print(get_active_connection())
 

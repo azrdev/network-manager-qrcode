@@ -80,8 +80,17 @@ def list_connections():
     ret = []
     # List each connection's name, UUID, and type
     for path in connection_paths:
-        con_proxy = bus.get_object(service_name, path)
-        settings_connection = dbus.Interface(con_proxy, "org.freedesktop.NetworkManager.Settings.Connection")
+        ret.append(Connection(path))
+
+    return ret
+
+
+class Connection(object):
+    def __init__(self, dbus_connection_path,
+                 service_name="org.freedesktop.NetworkManager"):
+        con_proxy = bus.get_object(service_name, dbus_connection_path)
+        settings_connection = dbus.Interface(con_proxy,
+                                             "org.freedesktop.NetworkManager.Settings.Connection")
         config = settings_connection.GetSettings(byte_arrays=True)
 
         # Now get secrets too; we grab the secrets for each type of connection
@@ -94,26 +103,39 @@ def list_connections():
         merge_secrets(settings_connection, config, 'gsm')
         merge_secrets(settings_connection, config, 'cdma')
         merge_secrets(settings_connection, config, 'ppp')
-        
-        #print "%r" % dict(config)
-        ret.append(config)
 
-        # Get the details of the 'connection' setting
-        s_con = config['connection']
-        #print "    name: %s" % s_con['id']
-        #print "    uuid: %s" % s_con['uuid']
-        #print "    type: %s" % s_con['type']
-        security =        config.get('802-11-wireless-security', {})
-        sectype = security.get('key-mgmt', None)
-        pw = security.get('psk', None)
-        #print "  sectype  : %s" % sectype
-        #print "  pw  : %s" % pw
-        #print "    ------------------------------------------"
-        #connection_to_string(config)
+        self._security = config.get('802-11-wireless-security', {})
 
-    #print ""
+        self._config = config
 
-    return ret
+    def __str__(self):
+        for setting_name in self._config:
+            print("        Setting: %s" % setting_name)
+            print(dict_to_string(self._config[setting_name], "            "))
+        print("")
+
+    def get_id(self):
+        return self._config['connection']['id']
+
+    def get_key(self):
+        if self.get_sec_type() == 'WEP':
+            return self._security.get('wep-key0')
+        return self._security.get('psk')
+
+    def get_passphrase(self):
+        """Like get_key, but encoded if necessary"""
+        #if self.get_sec_type() == 'WEP':
+            # FIXME: digest encoding, see create_barcode_string.py
+        return self.get_key()
+
+    def get_ssid(self):
+        return self._config['802-11-wireless']['ssid'].decode('utf-8')
+
+    def get_sec_type(self):
+        if 'wep-key0' in self._security:
+            return 'WEP'
+        return 'WPA'
+
 
 list_connections()
 
